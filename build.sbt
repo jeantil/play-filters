@@ -1,4 +1,5 @@
 import com.typesafe.sbt.SbtGit._
+import com.typesafe.sbt.SbtScalariform._
 
 name := "play-filters"
 
@@ -24,3 +25,5 @@ versionWithGit
 
 // Optionally:
 git.baseVersion := "2.3.8"
+
+scalariformSettings
