@@ -17,6 +17,7 @@ package eu.byjean.play.mvc.filters
 
 import java.util.UUID
 
+import org.slf4j.MDC
 import play.api.libs.Codecs
 import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -27,41 +28,63 @@ import scala.collection.parallel
 import scala.collection.parallel.immutable
 
 trait TrackingFilter extends EssentialFilter {
-  protected def trackResult(requestHeader: RequestHeader)(result: Result): Result
-
+  protected def trackResult(requestHeader: RequestHeader, tracker: String)(result: Result): Result
+  def trackerKey: String
+  def getTracker(requestHeader: RequestHeader): String
   def apply(nextFilter: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {
-      nextFilter(requestHeader).map(trackResult(requestHeader))
+      val tracker: String = getTracker(requestHeader)
+      MDC.put(trackerKey, tracker)
+      nextFilter(requestHeader).map(trackResult(requestHeader, tracker))
     }
   }
 }
 
+object BrowserUUIDFilter {
+  val XBrowserUUID = "X-Browser-UUID"
+
+}
 case class BrowserUUIDFilter() extends TrackingFilter {
   val BID = Codecs.sha1("browser_uuid")
   private def bidO(requestHeader: RequestHeader): Option[String] = {
     requestHeader.cookies.get(BID).map(cookie => cookie.value)
   }
-  private def createBid() = {
+  private def toCookie(bid: String) = {
     val expiresOn = (DateTime.now().plusYears(5).getMillis / 1000).toInt
-    Cookie(BID, UUID.randomUUID().toString, Some(expiresOn), Session.path, Session.domain, Session.secure, Session.httpOnly)
+    Cookie(BID, bid, Some(expiresOn), Session.path, Session.domain, Session.secure, Session.httpOnly)
   }
-  override protected def trackResult(requestHeader: RequestHeader)(result: Result): Result = {
-    result.withCookies(requestHeader.cookies.get(BID).getOrElse(createBid()))
+
+  override protected def trackResult(requestHeader: RequestHeader, bid: String)(result: Result): Result = {
+    MDC.remove(trackerKey)
+    result.withCookies(toCookie(bid))
   }
+
+  override def trackerKey: String = BrowserUUIDFilter.XBrowserUUID
+
+  def newBid: String = UUID.randomUUID().toString
+
+  override def getTracker(requestHeader: RequestHeader): String = bidO(requestHeader).getOrElse(newBid)
 }
+
 object RequestUUIDFilter {
   val XRequestUUID = "X-Request-UUID"
 }
+
 case class RequestUUIDFilter() extends EssentialFilter {
 
   def apply(nextFilter: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {
-      val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, collection.immutable.Seq(UUID.randomUUID().toString))
+      val requestUUID = UUID.randomUUID().toString
+      val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, collection.immutable.Seq(requestUUID))
       val originalHeaders = requestHeader.headers
       val newHeaders = new Headers {
         val data = requestUUIDHeader +: originalHeaders.toMap.toSeq
       }
-      nextFilter(requestHeader.copy(headers = newHeaders))
+      MDC.put(RequestUUIDFilter.XRequestUUID, requestUUID)
+      nextFilter(requestHeader.copy(headers = newHeaders)).map { result =>
+        MDC.remove(RequestUUIDFilter.XRequestUUID)
+        result
+      }
     }
   }
 }
