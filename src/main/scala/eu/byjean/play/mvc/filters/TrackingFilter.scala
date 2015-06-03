@@ -75,11 +75,9 @@ case class RequestUUIDFilter() extends EssentialFilter {
   def apply(nextFilter: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {
       val requestUUID = UUID.randomUUID().toString
-      val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, collection.immutable.Seq(requestUUID))
+      val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, requestUUID)
       val originalHeaders = requestHeader.headers
-      val newHeaders = new Headers {
-        val data = requestUUIDHeader +: originalHeaders.toMap.toSeq
-      }
+      val newHeaders = originalHeaders.add(requestUUIDHeader)
       MDC.put(RequestUUIDFilter.XRequestUUID, requestUUID)
       nextFilter(requestHeader.copy(headers = newHeaders)).map { result =>
         MDC.remove(RequestUUIDFilter.XRequestUUID)
