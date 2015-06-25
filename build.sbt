@@ -1,4 +1,3 @@
-import com.typesafe.sbt.SbtGit._
 import com.typesafe.sbt.SbtScalariform._
 
 name := "play-filters"
