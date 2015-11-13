@@ -44,7 +44,8 @@ object BrowserUUIDFilter {
   val XBrowserUUID = "X-Browser-UUID"
 
 }
-case class BrowserUUIDFilter() extends TrackingFilter {
+
+class BrowserUUIDFilter() extends TrackingFilter {
   val BID = Codecs.sha1("browser_uuid")
   private def bidO(requestHeader: RequestHeader): Option[String] = {
     requestHeader.cookies.get(BID).map(cookie => cookie.value)
@@ -70,7 +71,7 @@ object RequestUUIDFilter {
   val XRequestUUID = "X-Request-UUID"
 }
 
-case class RequestUUIDFilter() extends EssentialFilter {
+class RequestUUIDFilter() extends EssentialFilter {
 
   def apply(nextFilter: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {

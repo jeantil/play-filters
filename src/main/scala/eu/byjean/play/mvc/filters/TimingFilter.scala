@@ -18,7 +18,7 @@ package eu.byjean.play.mvc.filters
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.mvc.{ EssentialFilter, RequestHeader, EssentialAction }
 
-case class TimingFilter() extends EssentialFilter {
+class TimingFilter() extends EssentialFilter {
   def apply(nextFilter: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {
       val startTime = System.currentTimeMillis

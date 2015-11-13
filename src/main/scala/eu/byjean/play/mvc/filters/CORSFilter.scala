@@ -22,7 +22,7 @@ import play.api.mvc.{ Filter, RequestHeader, Result }
 
 import scala.concurrent._
 
-case class CORSFilter() extends Filter {
+class CORSFilter() extends Filter {
   lazy val logger: Logger = Logger(this.getClass)
 
   lazy val allowedDomain = play.api.Play.current.configuration.getString("cors.allowed.domain")
