@@ -26,3 +26,5 @@ versionWithGit
 git.baseVersion := "2.4.0"
 
 scalariformSettings
+
+updateOptions := updateOptions.value.withCachedResolution(true)
