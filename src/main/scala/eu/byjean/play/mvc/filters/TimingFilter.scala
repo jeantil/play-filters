@@ -16,11 +16,12 @@
 package eu.byjean.play.mvc.filters
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.mvc.{ EssentialFilter, RequestHeader, EssentialAction }
+import play.api.libs.iteratee.Iteratee
+import play.api.mvc.{EssentialAction, EssentialFilter, RequestHeader, Result}
 
 class TimingFilter() extends EssentialFilter {
   def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader) = {
+    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
       val startTime = System.currentTimeMillis
       nextFilter(requestHeader).map { result =>
         val endTime = System.currentTimeMillis
