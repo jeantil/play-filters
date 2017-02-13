@@ -17,22 +17,19 @@ package eu.byjean.play.mvc.filters
 
 import java.util.UUID
 
+import org.joda.time.DateTime
 import org.slf4j.MDC
 import play.api.libs.Codecs
-import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-
-import org.joda.time.DateTime
-
-import scala.collection.parallel
-import scala.collection.parallel.immutable
+import play.api.libs.iteratee.Iteratee
+import play.api.mvc._
 
 trait TrackingFilter extends EssentialFilter {
   protected def trackResult(requestHeader: RequestHeader, tracker: String)(result: Result): Result
   def trackerKey: String
   def getTracker(requestHeader: RequestHeader): String
   def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader) = {
+    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
       val tracker: String = getTracker(requestHeader)
       MDC.put(trackerKey, tracker)
       nextFilter(requestHeader).map(trackResult(requestHeader, tracker))
@@ -46,7 +43,7 @@ object BrowserUUIDFilter {
 }
 
 class BrowserUUIDFilter() extends TrackingFilter {
-  val BID = Codecs.sha1("browser_uuid")
+  val BID: String = Codecs.sha1("browser_uuid")
   private def bidO(requestHeader: RequestHeader): Option[String] = {
     requestHeader.cookies.get(BID).map(cookie => cookie.value)
   }
@@ -74,7 +71,7 @@ object RequestUUIDFilter {
 class RequestUUIDFilter() extends EssentialFilter {
 
   def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader) = {
+    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
       val requestUUID = UUID.randomUUID().toString
       val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, requestUUID)
       val originalHeaders = requestHeader.headers
