@@ -8,9 +8,9 @@ licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html
 
 libraryDependencies += "com.typesafe.play" %% "play" % "2.4.3"
 
-scalaVersion:= "2.11.6"
+scalaVersion:= "2.11.8"
 
-crossScalaVersions := Seq("2.11.6", "2.10.4")
+crossScalaVersions := Seq("2.11.8")
 
 lazy val playFilters = (project in file("."))
 
