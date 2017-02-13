@@ -25,8 +25,8 @@ import scala.concurrent._
 class CORSFilter() extends Filter {
   lazy val logger: Logger = Logger(this.getClass)
 
-  lazy val allowedDomain = play.api.Play.current.configuration.getString("cors.allowed.domain")
-  def isPreFlight(r: RequestHeader) = (
+  protected lazy val allowedDomain: Option[String] = play.api.Play.current.configuration.getString("cors.allowed.domain")
+  protected def isPreFlight(r: RequestHeader): Boolean = (
     r.method.toLowerCase.equals("options")
     &&
     r.headers.get("Access-Control-Request-Method").nonEmpty
