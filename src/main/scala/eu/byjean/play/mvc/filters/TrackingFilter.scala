@@ -64,23 +64,6 @@ class BrowserUUIDFilter() extends TrackingFilter {
   override def getTracker(requestHeader: RequestHeader): String = bidO(requestHeader).getOrElse(newBid)
 }
 
-object RequestUUIDFilter {
-  val XRequestUUID = "X-Request-UUID"
-}
 
-class RequestUUIDFilter() extends EssentialFilter {
 
-  def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
-      val requestUUID = UUID.randomUUID().toString
-      val requestUUIDHeader = (RequestUUIDFilter.XRequestUUID, requestUUID)
-      val originalHeaders = requestHeader.headers
-      val newHeaders = originalHeaders.add(requestUUIDHeader)
-      MDC.put(RequestUUIDFilter.XRequestUUID, requestUUID)
-      nextFilter(requestHeader.copy(headers = newHeaders)).map { result =>
-        MDC.remove(RequestUUIDFilter.XRequestUUID)
-        result
-      }
-    }
-  }
-}
+
