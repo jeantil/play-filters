@@ -17,7 +17,7 @@ package eu.byjean.play.mvc.filters
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.iteratee.Iteratee
-import play.api.mvc.{EssentialAction, EssentialFilter, RequestHeader, Result}
+import play.api.mvc.{ EssentialAction, EssentialFilter, RequestHeader, Result }
 
 class TimingFilter() extends EssentialFilter {
   def apply(nextFilter: EssentialAction) = new EssentialAction {
