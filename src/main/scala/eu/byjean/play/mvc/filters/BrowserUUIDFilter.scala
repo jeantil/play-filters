@@ -1,18 +1,18 @@
 /**
- * Copyright 2017 Jean Helou
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  * Copyright 2017 Jean Helou
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
 package eu.byjean.play.mvc.filters
 
 import java.util.UUID
@@ -32,24 +32,31 @@ import play.api.mvc._
 object BrowserUUIDFilter {
   val BrowserUUIDDefaultHeaderKey = "X-Browser-UUID"
   val BrowserUUIDDefaultCookieKey = "browser_uuid"
-  val BrowserUUIDHeaderKeyConfig = "eu.byjean.play.filters.browseruuid.headerKey"
-  val BrowserUUIDCookieKeyConfig = "eu.byjean.play.filters.browseruuid.CookieKey"
-  val BrowserUUIDMdcKeyConfig = "eu.byjean.play.filters.browseruuid.MdcKey"
-  val BrowserUUIDHashKeyConfig = "eu.byjean.play.filters.browseruuid.hashKey"
+  val BrowserUUIDHeaderKeyConfig  = "eu.byjean.play.filters.browseruuid.headerKey"
+  val BrowserUUIDCookieKeyConfig  = "eu.byjean.play.filters.browseruuid.CookieKey"
+  val BrowserUUIDMdcKeyConfig     = "eu.byjean.play.filters.browseruuid.MdcKey"
+  val BrowserUUIDHashKeyConfig    = "eu.byjean.play.filters.browseruuid.hashKey"
 
   @deprecated("Use BrowserUUIDHeaderKey", "2017-15-02")
   val XBrowserUUID = BrowserUUIDDefaultHeaderKey
 }
 
-class BrowserUUIDFilter @Inject() (config: Configuration)(implicit mat: Materializer, ec: ExecutionContext) extends EssentialFilter {
+class BrowserUUIDFilter @Inject()(config: Configuration)(implicit mat: Materializer, ec: ExecutionContext)
+    extends EssentialFilter {
 
-  val cookieKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDCookieKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultCookieKey)
-  val headerKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDHeaderKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
-  val mdcKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDMdcKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
+  val cookieKey: String = config
+    .getString(BrowserUUIDFilter.BrowserUUIDCookieKeyConfig)
+    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultCookieKey)
+  val headerKey: String = config
+    .getString(BrowserUUIDFilter.BrowserUUIDHeaderKeyConfig)
+    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
+  val mdcKey: String = config
+    .getString(BrowserUUIDFilter.BrowserUUIDMdcKeyConfig)
+    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
   val hashKey: Boolean = config.getBoolean(BrowserUUIDFilter.BrowserUUIDHashKeyConfig).getOrElse(false)
 
   private val hashedkey: String = Codecs.sha1(cookieKey)
-  private val key: String = if (hashKey) hashedkey else cookieKey
+  private val key: String       = if (hashKey) hashedkey else cookieKey
 
   override def apply(nextFilter: EssentialAction): EssentialAction = new EssentialAction {
     override def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
@@ -68,7 +75,8 @@ class BrowserUUIDFilter @Inject() (config: Configuration)(implicit mat: Material
     requestHeader.headers.get(headerKey)
 
   private def fromCookie(requestHeader: RequestHeader): Option[String] =
-    requestHeader.cookies.get(key)
+    requestHeader.cookies
+      .get(key)
       .orElse(requestHeader.cookies.get(key))
       .map(cookie => cookie.value)
 
@@ -85,4 +93,3 @@ class BrowserUUIDFilter @Inject() (config: Configuration)(implicit mat: Material
   private def newId: String = UUID.randomUUID().toString
 
 }
-
