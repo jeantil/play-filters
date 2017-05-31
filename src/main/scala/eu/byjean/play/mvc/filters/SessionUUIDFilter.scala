@@ -17,26 +17,33 @@ package eu.byjean.play.mvc.filters
 
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{ Duration, FiniteDuration }
 
+import akka.stream.Materializer
 import org.slf4j.MDC
+import play.api.Configuration
 import play.api.mvc._
 
 object SessionUUIDFilter {
   case class SessionId(id: String, expiresAt: Instant)
 
-  val SessionUUIDKey: String = "X-Session-UUID"
+  val SessionUUIDHeader: String = "X-Session-UUID"
+  val SessionUUIDKey = "eu.byjean.play.filters.sessionuuid.key"
+  val SessionUUIDSessionDurationKey = "eu.byjean.play.filters.sessionuuid.sessionDuration"
 
   private val DefaultSeparator = ":"
   private val UUID_REGEX = """\p{XDigit}+(?:-\p{XDigit}+){4}"""
   private val SESSION_VALUE_REGEX = s"""($UUID_REGEX):(\\d+)""".r
 }
 
-case class SessionUUIDFilter(sessionDuration: FiniteDuration, headerKey: String = SessionUUIDFilter.SessionUUIDKey)(implicit ec: ExecutionContext) extends Filter {
+case class SessionUUIDFilter @Inject() (config: Configuration)(implicit ec: ExecutionContext, val mat: Materializer) extends Filter {
   import SessionUUIDFilter._
-
+  val sessionDuration: FiniteDuration =
+    config.getNanoseconds(SessionUUIDFilter.SessionUUIDSessionDurationKey).map(Duration.fromNanos).getOrElse(throw new IllegalStateException(s"Mandatory configuration key ${SessionUUIDSessionDurationKey} is not set preventing usage of SessionUUIDFilter"))
+  val headerKey: String = config.getString(SessionUUIDFilter.SessionUUIDKey).getOrElse(SessionUUIDFilter.SessionUUIDHeader)
   def apply(nextFilter: RequestHeader => Future[Result])(requestHeader: RequestHeader): Future[Result] = {
     val session = updateSessionCookie(requestHeader)
     MDC.put(headerKey, session.id)

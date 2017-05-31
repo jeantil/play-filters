@@ -15,14 +15,17 @@
  */
 package eu.byjean.play.mvc.filters
 
+import javax.inject.Inject
+
 import controllers.Default
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.mvc.{ Filter, RequestHeader, Result }
-
 import scala.concurrent._
 
-class CORSFilter() extends Filter {
+import akka.stream.Materializer
+
+class CORSFilter @Inject() (implicit val mat: Materializer) extends Filter {
   lazy val logger: Logger = Logger(this.getClass)
 
   protected lazy val allowedDomain: Option[String] = play.api.Play.current.configuration.getString("cors.allowed.domain")

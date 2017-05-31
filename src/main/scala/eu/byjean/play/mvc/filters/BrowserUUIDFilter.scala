@@ -16,35 +16,43 @@
 package eu.byjean.play.mvc.filters
 
 import java.util.UUID
+import javax.inject.Inject
 
 import scala.concurrent.ExecutionContext
 
+import akka.stream.Materializer
+import akka.util.ByteString
 import org.joda.time.DateTime
 import org.slf4j.MDC
+import play.api.Configuration
 import play.api.libs.Codecs
-import play.api.libs.iteratee.Iteratee
+import play.api.libs.streams.Accumulator
 import play.api.mvc._
 
 object BrowserUUIDFilter {
-  val BrowserUUIDHeaderKey = "X-Browser-UUID"
-  val BrowserUUIDCookieKey = "browser_uuid"
+  val BrowserUUIDDefaultHeaderKey = "X-Browser-UUID"
+  val BrowserUUIDDefaultCookieKey = "browser_uuid"
+  val BrowserUUIDHeaderKeyConfig = "eu.byjean.play.filters.browseruuid.headerKey"
+  val BrowserUUIDCookieKeyConfig = "eu.byjean.play.filters.browseruuid.CookieKey"
+  val BrowserUUIDMdcKeyConfig = "eu.byjean.play.filters.browseruuid.MdcKey"
+  val BrowserUUIDHashKeyConfig = "eu.byjean.play.filters.browseruuid.hashKey"
 
   @deprecated("Use BrowserUUIDHeaderKey", "2017-15-02")
-  val XBrowserUUID = BrowserUUIDHeaderKey
+  val XBrowserUUID = BrowserUUIDDefaultHeaderKey
 }
 
-class BrowserUUIDFilter(
-    cookieKey: String = BrowserUUIDFilter.BrowserUUIDCookieKey,
-    headerKey: String = BrowserUUIDFilter.BrowserUUIDHeaderKey,
-    mdcKey: String = BrowserUUIDFilter.BrowserUUIDHeaderKey,
-    hashKey: Boolean = false)(
-        implicit ec: ExecutionContext) {
+class BrowserUUIDFilter @Inject() (config: Configuration)(implicit mat: Materializer, ec: ExecutionContext) extends EssentialFilter {
+
+  val cookieKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDCookieKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultCookieKey)
+  val headerKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDHeaderKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
+  val mdcKey: String = config.getString(BrowserUUIDFilter.BrowserUUIDMdcKeyConfig).getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
+  val hashKey: Boolean = config.getBoolean(BrowserUUIDFilter.BrowserUUIDHashKeyConfig).getOrElse(false)
 
   private val hashedkey: String = Codecs.sha1(cookieKey)
   private val key: String = if (hashKey) hashedkey else cookieKey
 
-  def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
+  override def apply(nextFilter: EssentialAction): EssentialAction = new EssentialAction {
+    override def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
       val tracker: String = getTracker(requestHeader)
       MDC.put(mdcKey, tracker)
       nextFilter(requestHeader).map(trackResult(requestHeader, tracker))

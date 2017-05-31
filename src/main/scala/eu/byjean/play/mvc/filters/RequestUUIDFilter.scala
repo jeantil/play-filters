@@ -16,21 +16,29 @@
 package eu.byjean.play.mvc.filters
 
 import java.util.UUID
+import javax.inject.Inject
 
 import scala.concurrent.ExecutionContext
 
+import akka.stream.Materializer
+import akka.util.ByteString
 import org.slf4j.MDC
-import play.api.libs.iteratee.Iteratee
+import play.api.Configuration
+import play.api.libs.streams.Accumulator
 import play.api.mvc.{ EssentialAction, EssentialFilter, RequestHeader, Result }
 
 object RequestUUIDFilter {
-  val XRequestUUID = "X-Request-UUID"
+  val XRequestUUIDHeader = "X-Request-UUID"
+  val RequestUUIDKey = "eu.byjean.play.filters.requestuuid.key"
+  val RequestUUIDReuse = "eu.byjean.play.filters.requestuuid.useExisting"
+
 }
 
-class RequestUUIDFilter(useExisting: Boolean = true, key: String = RequestUUIDFilter.XRequestUUID)(implicit ec: ExecutionContext) extends EssentialFilter {
-
+class RequestUUIDFilter @Inject() (config: Configuration)(implicit mat: Materializer, ec: ExecutionContext) extends EssentialFilter {
+  val useExisting: Boolean = config.getBoolean(RequestUUIDFilter.RequestUUIDReuse).getOrElse(true)
+  val key: String = config.getString(RequestUUIDFilter.RequestUUIDKey).getOrElse(RequestUUIDFilter.XRequestUUIDHeader)
   def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
+    def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
       val requestUUID = readRequestUUID(requestHeader).getOrElse(newRequestUUID)
       val requestUUIDHeader = (key, requestUUID)
       val newHeaders = requestHeader.headers.add(requestUUIDHeader)

@@ -15,13 +15,14 @@
  */
 package eu.byjean.play.mvc.filters
 
+import akka.util.ByteString
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.iteratee.Iteratee
+import play.api.libs.streams.Accumulator
 import play.api.mvc.{ EssentialAction, EssentialFilter, RequestHeader, Result }
 
 class TimingFilter() extends EssentialFilter {
   def apply(nextFilter: EssentialAction) = new EssentialAction {
-    def apply(requestHeader: RequestHeader): Iteratee[Array[Byte], Result] = {
+    def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
       val startTime = System.currentTimeMillis
       nextFilter(requestHeader).map { result =>
         val endTime = System.currentTimeMillis
