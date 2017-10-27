@@ -31,20 +31,20 @@ object RequestUUIDFilter {
   val XRequestUUIDHeader = "X-Request-UUID"
   val RequestUUIDKey     = "eu.byjean.play.filters.requestuuid.key"
   val RequestUUIDReuse   = "eu.byjean.play.filters.requestuuid.useExisting"
-
 }
 
 class RequestUUIDFilter @Inject()(config: Configuration)(implicit mat: Materializer, ec: ExecutionContext)
     extends EssentialFilter {
-  val useExisting: Boolean = config.getBoolean(RequestUUIDFilter.RequestUUIDReuse).getOrElse(true)
-  val key: String          = config.getString(RequestUUIDFilter.RequestUUIDKey).getOrElse(RequestUUIDFilter.XRequestUUIDHeader)
-  def apply(nextFilter: EssentialAction) = new EssentialAction {
+  private val useExisting: Boolean = config.get[Boolean](RequestUUIDFilter.RequestUUIDReuse)
+  private val key: String          = config.get[String](RequestUUIDFilter.RequestUUIDKey)
+
+  def apply(nextFilter: EssentialAction): EssentialAction = new EssentialAction {
     def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
       val requestUUID       = readRequestUUID(requestHeader).getOrElse(newRequestUUID)
       val requestUUIDHeader = (key, requestUUID)
       val newHeaders        = requestHeader.headers.add(requestUUIDHeader)
       MDC.put(key, requestUUID)
-      nextFilter(requestHeader.copy(headers = newHeaders)).map { result =>
+      nextFilter(requestHeader.withHeaders(newHeaders)).map { result =>
         MDC.remove(key)
         result
       }
