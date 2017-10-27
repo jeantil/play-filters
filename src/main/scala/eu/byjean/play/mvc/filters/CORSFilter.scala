@@ -18,18 +18,18 @@ package eu.byjean.play.mvc.filters
 import javax.inject.Inject
 
 import controllers.Default
-import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import play.api.{Configuration, Logger}
 import play.api.mvc.{Filter, RequestHeader, Result}
 import scala.concurrent._
 
 import akka.stream.Materializer
 
-class CORSFilter @Inject()(implicit val mat: Materializer) extends Filter {
+class CORSFilter @Inject()(configuration: Configuration, default: Default)(implicit val mat: Materializer, executionContext: ExecutionContext) extends Filter {
   lazy val logger: Logger = Logger(this.getClass)
 
   protected lazy val allowedDomain: Option[String] =
-    play.api.Play.current.configuration.getString("cors.allowed.domain")
+    configuration.get[Option[String]]("cors.allowed.domain")
+
   protected def isPreFlight(r: RequestHeader): Boolean = (
     r.method.toLowerCase.equals("options")
       &&
@@ -40,7 +40,7 @@ class CORSFilter @Inject()(implicit val mat: Materializer) extends Filter {
     if (isPreFlight(request)) {
       if (logger.isTraceEnabled) logger.trace(s"Preflight default allowed domain is '$allowedDomain'")
       Future.successful(
-        Default.Ok.withHeaders(
+        default.Ok.withHeaders(
           "Access-Control-Allow-Origin"  -> allowedDomain.orElse(request.headers.get("Origin")).getOrElse(""),
           "Access-Control-Allow-Methods" -> request.headers.get("Access-Control-Request-Method").getOrElse("*"),
           "Access-Control-Allow-Headers" -> request.headers.get("Access-Control-Request-Headers").getOrElse(""),
