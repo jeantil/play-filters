@@ -33,27 +33,24 @@ object BrowserUUIDFilter {
   val BrowserUUIDDefaultHeaderKey = "X-Browser-UUID"
   val BrowserUUIDDefaultCookieKey = "browser_uuid"
   val BrowserUUIDHeaderKeyConfig  = "eu.byjean.play.filters.browseruuid.headerKey"
-  val BrowserUUIDCookieKeyConfig  = "eu.byjean.play.filters.browseruuid.CookieKey"
-  val BrowserUUIDMdcKeyConfig     = "eu.byjean.play.filters.browseruuid.MdcKey"
+  val BrowserUUIDCookieKeyConfig  = "eu.byjean.play.filters.browseruuid.cookieKey"
+  val BrowserUUIDMdcKeyConfig     = "eu.byjean.play.filters.browseruuid.mdcKey"
   val BrowserUUIDHashKeyConfig    = "eu.byjean.play.filters.browseruuid.hashKey"
 
   @deprecated("Use BrowserUUIDHeaderKey", "2017-15-02")
   val XBrowserUUID = BrowserUUIDDefaultHeaderKey
 }
 
-class BrowserUUIDFilter @Inject()(config: Configuration)(implicit mat: Materializer, ec: ExecutionContext)
+class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieBaker)(implicit mat: Materializer, ec: ExecutionContext)
     extends EssentialFilter {
 
   val cookieKey: String = config
-    .getString(BrowserUUIDFilter.BrowserUUIDCookieKeyConfig)
-    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultCookieKey)
+    .get[String](BrowserUUIDFilter.BrowserUUIDCookieKeyConfig)
   val headerKey: String = config
-    .getString(BrowserUUIDFilter.BrowserUUIDHeaderKeyConfig)
-    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
+    .get[String](BrowserUUIDFilter.BrowserUUIDHeaderKeyConfig)
   val mdcKey: String = config
-    .getString(BrowserUUIDFilter.BrowserUUIDMdcKeyConfig)
-    .getOrElse(BrowserUUIDFilter.BrowserUUIDDefaultHeaderKey)
-  val hashKey: Boolean = config.getBoolean(BrowserUUIDFilter.BrowserUUIDHashKeyConfig).getOrElse(false)
+    .get[String](BrowserUUIDFilter.BrowserUUIDMdcKeyConfig)
+  val hashKey: Boolean = config.get[Boolean](BrowserUUIDFilter.BrowserUUIDHashKeyConfig)
 
   private val hashedkey: String = Codecs.sha1(cookieKey)
   private val key: String       = if (hashKey) hashedkey else cookieKey
@@ -87,7 +84,7 @@ class BrowserUUIDFilter @Inject()(config: Configuration)(implicit mat: Materiali
 
   private def toCookie(bid: String) = {
     val expiresOn = (DateTime.now().plusYears(5).getMillis / 1000).toInt
-    Cookie(key, bid, Some(expiresOn), Session.path, Session.domain, Session.secure, Session.httpOnly)
+    Cookie(key, bid, Some(expiresOn), session.path, session.domain, session.secure, session.httpOnly)
   }
 
   private def newId: String = UUID.randomUUID().toString
