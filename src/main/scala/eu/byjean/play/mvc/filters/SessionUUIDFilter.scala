@@ -20,7 +20,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 import akka.stream.Materializer
 import org.slf4j.MDC
@@ -39,17 +39,14 @@ object SessionUUIDFilter {
   private val SESSION_VALUE_REGEX = s"""($UUID_REGEX):(\\d+)""".r
 }
 
-case class SessionUUIDFilter @Inject()(config: Configuration)(implicit ec: ExecutionContext, val mat: Materializer)
+case class SessionUUIDFilter @Inject()(config: Configuration, session: SessionCookieBaker)(implicit ec: ExecutionContext, val mat: Materializer)
     extends Filter {
   import SessionUUIDFilter._
-  val sessionDuration: FiniteDuration =
-    config
-      .getNanoseconds(SessionUUIDFilter.SessionUUIDSessionDurationKey)
-      .map(Duration.fromNanos)
-      .getOrElse(throw new IllegalStateException(
-        s"Mandatory configuration key ${SessionUUIDSessionDurationKey} is not set preventing usage of SessionUUIDFilter"))
-  val headerKey: String =
-    config.getString(SessionUUIDFilter.SessionUUIDKey).getOrElse(SessionUUIDFilter.SessionUUIDHeader)
+  private val sessionDuration: FiniteDuration =
+    config.get[FiniteDuration](SessionUUIDFilter.SessionUUIDSessionDurationKey)
+  private val headerKey: String =
+    config.get[String](SessionUUIDFilter.SessionUUIDKey)
+
   def apply(nextFilter: RequestHeader => Future[Result])(requestHeader: RequestHeader): Future[Result] = {
     val session = updateSessionCookie(requestHeader)
     MDC.put(headerKey, session.id)
@@ -61,7 +58,7 @@ case class SessionUUIDFilter @Inject()(config: Configuration)(implicit ec: Execu
 
   private def toCookie(sessionID: String, expiresAt: Instant) = {
     val cookieValue = sessionID + DefaultSeparator + expiresAt.getEpochSecond
-    Cookie(headerKey, cookieValue, None, Session.path, Session.domain, Session.secure, Session.httpOnly)
+    Cookie(headerKey, cookieValue, None, session.path, session.domain, session.secure, session.httpOnly)
   }
 
   private def updateSessionCookie(requestHeader: RequestHeader): SessionId = {
