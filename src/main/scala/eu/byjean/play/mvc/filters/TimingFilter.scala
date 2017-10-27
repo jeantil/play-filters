@@ -15,13 +15,16 @@
   */
 package eu.byjean.play.mvc.filters
 
+import javax.inject.Inject
+
+import scala.concurrent.ExecutionContext
+
 import akka.util.ByteString
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{EssentialAction, EssentialFilter, RequestHeader, Result}
 
-class TimingFilter() extends EssentialFilter {
-  def apply(nextFilter: EssentialAction) = new EssentialAction {
+class TimingFilter @Inject()(implicit executionContext: ExecutionContext) extends EssentialFilter {
+  def apply(nextFilter: EssentialAction): EssentialAction = new EssentialAction {
     def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
       val startTime = System.currentTimeMillis
       nextFilter(requestHeader).map { result =>
