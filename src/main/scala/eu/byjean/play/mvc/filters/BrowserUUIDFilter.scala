@@ -15,6 +15,7 @@
   */
 package eu.byjean.play.mvc.filters
 
+import java.time.{Duration, Period}
 import java.util.UUID
 import javax.inject.Inject
 
@@ -22,7 +23,6 @@ import scala.concurrent.ExecutionContext
 
 import akka.stream.Materializer
 import akka.util.ByteString
-import org.joda.time.DateTime
 import org.slf4j.MDC
 import play.api.Configuration
 import play.api.libs.Codecs
@@ -36,9 +36,10 @@ object BrowserUUIDFilter {
   val BrowserUUIDCookieKeyConfig  = "eu.byjean.play.filters.browseruuid.cookieKey"
   val BrowserUUIDMdcKeyConfig     = "eu.byjean.play.filters.browseruuid.mdcKey"
   val BrowserUUIDHashKeyConfig    = "eu.byjean.play.filters.browseruuid.hashKey"
+  val BrowserUUIDMaxAgeKeyConfig  = "eu.byjean.play.filters.browseruuid.maxAge"
 
   @deprecated("Use BrowserUUIDHeaderKey", "2017-15-02")
-  val XBrowserUUID = BrowserUUIDDefaultHeaderKey
+  val XBrowserUUID: String = BrowserUUIDDefaultHeaderKey
 }
 
 class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieBaker)(implicit mat: Materializer, ec: ExecutionContext)
@@ -51,6 +52,9 @@ class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieB
   val mdcKey: String = config
     .get[String](BrowserUUIDFilter.BrowserUUIDMdcKeyConfig)
   val hashKey: Boolean = config.get[Boolean](BrowserUUIDFilter.BrowserUUIDHashKeyConfig)
+
+  val maxAge: Period = config
+    .get[Period](BrowserUUIDFilter.BrowserUUIDMaxAgeKeyConfig)
 
   private val hashedkey: String = Codecs.sha1(cookieKey)
   private val key: String       = if (hashKey) hashedkey else cookieKey
@@ -83,7 +87,7 @@ class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieB
   }
 
   private def toCookie(bid: String) = {
-    val expiresOn = (DateTime.now().plusYears(5).getMillis / 1000).toInt
+    val expiresOn = Duration.from(maxAge).getSeconds.toInt
     Cookie(key, bid, Some(expiresOn), session.path, session.domain, session.secure, session.httpOnly)
   }
 
