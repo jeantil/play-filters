@@ -15,11 +15,11 @@
   */
 package eu.byjean.play.mvc.filters
 
-import java.time.{Duration, Period}
 import java.util.UUID
 import javax.inject.Inject
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 import akka.stream.Materializer
 import akka.util.ByteString
@@ -53,8 +53,8 @@ class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieB
     .get[String](BrowserUUIDFilter.BrowserUUIDMdcKeyConfig)
   val hashKey: Boolean = config.get[Boolean](BrowserUUIDFilter.BrowserUUIDHashKeyConfig)
 
-  val maxAge: Period = config
-    .get[Period](BrowserUUIDFilter.BrowserUUIDMaxAgeKeyConfig)
+  val maxAge: Duration = config
+    .get[Duration](BrowserUUIDFilter.BrowserUUIDMaxAgeKeyConfig)
 
   private val hashedkey: String = Codecs.sha1(cookieKey)
   private val key: String       = if (hashKey) hashedkey else cookieKey
@@ -87,8 +87,7 @@ class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieB
   }
 
   private def toCookie(bid: String) = {
-    val expiresOn = Duration.from(maxAge).getSeconds.toInt
-    Cookie(key, bid, Some(expiresOn), session.path, session.domain, session.secure, session.httpOnly)
+    Cookie(key, bid, Some(maxAge.toSeconds.toInt), session.path, session.domain, session.secure, session.httpOnly)
   }
 
   private def newId: String = UUID.randomUUID().toString
