@@ -78,7 +78,7 @@ class BrowserUUIDFilter @Inject()(config: Configuration, session: SessionCookieB
   private def fromCookie(requestHeader: RequestHeader): Option[String] =
     requestHeader.cookies
       .get(key)
-      .orElse(requestHeader.cookies.get(key))
+      .orElse(requestHeader.cookies.get(hashedkey))
       .map(cookie => cookie.value)
 
   protected def trackResult(requestHeader: RequestHeader, bid: String)(result: Result): Result = {
